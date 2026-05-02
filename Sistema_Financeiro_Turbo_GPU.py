@@ -7,6 +7,7 @@ import xlsxwriter
 from tqdm import tqdm
 
 # --- CONFIGURAÇÃO DE CAMINHOS ---
+# --- olá testando para git 
 PASTA_DADOS = "dados"
 PASTA_MIDIAS = os.path.join(PASTA_DADOS, "midias")
 PASTA_RESULTADOS = os.path.join(PASTA_DADOS, "resultados")
