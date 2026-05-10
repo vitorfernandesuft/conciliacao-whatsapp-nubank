@@ -1,3 +1,4 @@
+dir
 import os
 
 def listar_estrutura(diretorio_pai, indentacao=0, pastas_ignoradas=None):
