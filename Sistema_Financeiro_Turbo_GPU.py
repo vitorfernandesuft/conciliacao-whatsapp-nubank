@@ -86,10 +86,16 @@ def processar_whatsapp():
     with open(conversa_txt[0], 'r', encoding='utf-8', errors='ignore') as f:
         linhas_conversa = f.readlines()
 
+    # Otimização: Criar um padrão regex que busca qualquer um dos nomes de arquivo de uma vez
+    if not dados_arquivos: print("AVISO: Nenhuma mídia processada."); return
+    padrao_arquivos = re.compile('|'.join(map(re.escape, dados_arquivos.keys())))
+
     mensagens_vinculo = []
     for i, linha in enumerate(linhas_conversa):
-        for nome_arq, info in dados_arquivos.items():
-            if nome_arq in linha:
+        match_arq = padrao_arquivos.search(linha)
+        if match_arq:
+                nome_arq = match_arq.group()
+                info = dados_arquivos[nome_arq]
                 m = re.search(r'(\d{2}/\d{2}/\d{4}\s\d{2}:\d{2})', linha)
                 data_hora = m.group(1) if m else ""
                 
@@ -130,7 +136,8 @@ def processar_extrato():
                 lin = lin.strip()
                 m_data = re.match(r'^(\d{2}\s[A-Z]{3}\s\d{4})', lin)
                 if m_data: data_at = m_data.group(1); continue
-                if any(lin.startswith(x) for x in ["Transferência", "Pagamento", "Débito", "Compra", "Pix"]):
+                # Captura transações comuns ignorando 'Recebida' para focar em saídas/pagamentos se necessário
+                if any(lin.startswith(x) for x in ["Transferência", "Pagamento", "Débito", "Compra", "Pix", "Crédito"]):
                     for j in range(1, 12):
                         if i+j < len(linhas):
                             candidata = linhas[i+j].strip()
@@ -144,7 +151,11 @@ def processar_extrato():
 
     df = pd.DataFrame(todas_transacoes)
     if not df.empty:
-        df['TS_Banco'] = df['Data_Banco'].apply(lambda x: pd.to_datetime(f"{x.split()[2]}-{meses_map.get(x.split()[1])}-{x.split()[0]}"))
+        def formatar_data(x):
+            partes = x.split()
+            mes = meses_map.get(partes[1], '01')
+            return pd.to_datetime(f"{partes[2]}-{mes}-{partes[0]}")
+        df['TS_Banco'] = df['Data_Banco'].apply(formatar_data)
         df = df.drop_duplicates().sort_values('TS_Banco').reset_index(drop=True)
         df.to_excel(ARQUIVO_EXTRATO_FINAL, index=False)
 
@@ -194,11 +205,13 @@ def realizar_conciliacao():
     f_r = wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'})
     f_m = wb.add_format({'num_format': 'R$ #,##0.00'})
     f_w = wb.add_format({'text_wrap': True, 'valign': 'top', 'font_size': 8})
+    f_header = wb.add_format({'bold': True, 'bg_color': '#F2F2F2', 'border': 1})
 
     ws.conditional_format('A2:A5000', {'type': 'cell', 'criteria': 'equal to', 'value': '"CONCILIADO"', 'format': f_v})
     ws.conditional_format('A2:A5000', {'type': 'cell', 'criteria': 'equal to', 'value': '"NÃO CONCILIADO"', 'format': f_r})
-    ws.set_column('C:C', 14, f_m)
-    ws.set_column('E:F', 50, f_w) # Descrição e OCR
+    ws.set_column('A:B', 15); ws.set_column('C:C', 14, f_m)
+    ws.set_column('D:D', 18); ws.set_column('E:F', 45, f_w)
+    ws.set_column('G:G', 20)
     ws.set_column('H:H', 65, f_w) # Contexto por último e bem largo
     writer.close()
     print(f"SUCESSO: {ARQUIVO_CONCILIACAO}")
