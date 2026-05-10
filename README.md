@@ -60,3 +60,7 @@ O arquivo .gitignore está configurado para NÃO enviar a pasta dados/ para o Gi
 ------------------------------
 Dica técnica: Se você possui uma NVIDIA, o script usará automaticamente o motor CUDA para acelerar o processamento de imagens.
 
+## 🛡️ dados técnicos da versão de 10/05/2026 V1
+1 - Gestão de Recursos: O uso de gc.collect() e torch.cuda.empty_cache() é vital para processos de longa duração. conforme vai crescendo a varredura ao longo do ano por exemplo. 
+2 - Lógica de Causalidade: A restrição TS_Whats.dt.date >= data_limite na conciliação é perfeita; ela impede "viagens no tempo" onde um comprovante antigo pagaria uma conta nova.Sempre qeu você inserir no whats um comprovante é porque a despesa com 100% de certeja ja existe em data e hr anterior no comprovante do nubank. então o script so pega a data e hr do extrado nubanck e varre a conversa do whats sempre pra frente, nunca pra trás, isso ja evita pegar despesas iguais pra tras. 
+Resiliência no OCR: O sistema de cache para o EasyOCR economiza horas de processamento em execuções repetidas. A gente manda limpar o cache da placa de vídeo após rodar as leituras das imagens. 
