@@ -39,13 +39,49 @@ projeto-financeiro/
 │   └── resultados/           # Relatórios gerados automaticamente
 
 ------------------------------
-## 💻 Configuração do Ambiente (Usando UV)
-Recomendamos o uso do uv para gerenciamento ultrarrápido.
+## 📦 Bibliotecas Necessárias
+Para instalar todas as dependências manualmente via `pip`, utilize o comando abaixo (mas prefira usar o UV, logo abaixo explico, ele ja instala tudo automaticamente):
+```bash
+pip install pandas pymupdf tqdm torch easyocr xlsxwriter openpyxl
+```
+*   **pandas**: Essencial para a manipulação de dados e tabelas.
+*   **pymupdf (fitz)**: Utilizado para extrair texto de comprovantes em PDF.
+*   **tqdm**: Adiciona as barras de progresso durante o processamento.
+*   **torch & easyocr**: O "cérebro" do sistema para reconhecimento de texto em imagens (OCR).
+*   **xlsxwriter & openpyxl**: Motores para leitura e gravação de arquivos Excel com formatação avançada.
 
-# 1. Sincronizar o ambiente completo (instala Python e bibliotecas)
-uv sync
-# 2. Rodar o sistema
+------------------------------
+## � Configuração do Ambiente (Usando UV)
+Recomendamos o uso do uv para gerenciamento ultrarrápido.
+### Roteiro de Instalação do Zero:
+
+**1. Instale o UV (caso não tenha):**
+No Windows (PowerShell):
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+No Linux/Mac:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**2. Prepare o Projeto:**
+Abra o terminal na pasta do projeto e execute:
+```bash
+# Inicializa o projeto e cria o ambiente virtual isolado
+uv init
+
+# Adiciona todas as dependências de uma vez
+uv add pandas pymupdf tqdm torch easyocr xlsxwriter openpyxl
+```
+
+**3. Execute o Sistema:**
+O UV garantirá que o Python correto e as versões exatas das bibliotecas sejam usadas:
+```bash
 uv run Sistema_Financeiro_Turbo_GPU.py
+```
+
+*Dica: O UV criará uma pasta `.venv`. Você não precisa se preocupar com ela, o comando `uv run` gerencia tudo automaticamente.*
 
 ------------------------------
 ## 📊 Output (Relatório Final)

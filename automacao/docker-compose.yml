@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+
+  # ── Banco de dados ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: vf_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - vf_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Fila de mensagens ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: vf_redis
+    restart: unless-stopped
+    networks:
+      - vf_network
+
+  # ── WhatsApp API ────────────────────────────────────────────────
+  evolution-api:
+    image: atendai/evolution-api:v2.2.3
+    container_name: vf_evolution
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_URL: http://${SERVER_IP}:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      QRCODE_LIMIT: "30"
+      LOG_LEVEL: ERROR
+    volumes:
+      - evolution_data:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - vf_network
+
+  # ── Automação / Workflows ───────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: vf_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: "0.0.0.0"
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://${SERVER_IP}:5678/
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      TZ: America/Sao_Paulo
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vf_network
+
+  # ── Serviço de OCR ──────────────────────────────────────────────
+  ocr-service:
+    build: ./ocr-service
+    container_name: vf_ocr
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ocr_cache:/app/cache
+    networks:
+      - vf_network
+
+volumes:
+  postgres_data:
+  evolution_data:
+  n8n_data:
+  ocr_cache:
+
+networks:
+  vf_network:
+    driver: bridge
